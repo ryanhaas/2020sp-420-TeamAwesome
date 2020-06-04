@@ -2,6 +2,7 @@
 import org.junit.Test;
 
 import controller.CommandController;
+import controller.GUIController;
 import model.UMLClassManager;
 
 import static org.junit.Assert.assertEquals;
@@ -9,10 +10,14 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.PrintStream;
 
 // Local imports
 import views.ConsoleView;
+import views.GUIView;
+import views.components.testable.TestableFileChooser;
+import views.components.testable.TestableMenuItem;
 
 /**
  * Class to run JUnit tests on the Console
@@ -460,6 +465,37 @@ public class ConsoleTest {
 		myout.close();
 	}
 	
+	@Test
+	public void editRelationshipCommand() {
+		// Create output stream for executing commands
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		PrintStream myout = new PrintStream(bos);
+		
+		// Setup console and model
+		UMLClassManager model = new UMLClassManager();
+		ConsoleView console = new ConsoleView(model, new CommandController(model));
+		model.addClass("myclass");
+		model.addClass("another");
+		model.addClass("third");
+		model.addRelationship("myclass", "aggregation", "another");
+		model.addRelationship("another", "composition", "third");
+				
+		//Edit relationships with valid input 
+		assertEquals("edit relationship with valid return code", 0, console.execCommand("edit relationship myclass aggregation another composition", myout));
+		myout.flush();
+		assertEquals("edit relationship with valid return message", "Changed relationship from class \'myclass\' to class \'another\' of type \'aggregation\' to type \'composition\'.", scrubOut(bos.toString()));
+		bos.reset();
+		assertEquals("edit relationship with valid return code again", 0, console.execCommand("edit relationship another composition third realization", myout));
+		myout.flush();
+		assertEquals("edit relationship with valid return message", "Changed relationship from class \'another\' to class \'third\' of type \'composition\' to type \'realization\'.", scrubOut(bos.toString()));
+		bos.reset();
+		
+		//Edit relationships with invalid input
+		assertEquals("edit relationship with no exisiting relationship", 108, console.execCommand("edit relationship myclass inheritance another composition", myout));
+		myout.flush();
+		
+		
+	}
 	/**
 	 * Test the edit method output
 	 * NOTE SOME OUTPUT RELIES ON FUNCTIONING MODEL
@@ -616,6 +652,8 @@ public class ConsoleTest {
 		+ "edit class <old_class_name> <new_class_name>." + System.lineSeparator() + System.lineSeparator()
 		+ "Edit fields and methods with:" + System.lineSeparator() + System.lineSeparator()
 		+ "edit <field/method> <source_class> <old_name> <new_name> <parameter_list>(for method)." + System.lineSeparator() + System.lineSeparator()
+		+ "Edit Relationships with:" + System.lineSeparator() + System.lineSeparator()
+		+ "edit relationship <class_name1> <old_type> <class_name2> <new_type>." + System.lineSeparator() + System.lineSeparator()
 		+ "remove: Can remove class with:" + System.lineSeparator() + System.lineSeparator()
 		+ "remove <class_name>." + System.lineSeparator() + System.lineSeparator()
 		+ "Also removes fields and methods from specified class in the form:" + System.lineSeparator() + System.lineSeparator()
@@ -655,6 +693,68 @@ public class ConsoleTest {
 		
 		// Close the print stream
 		myout.close();
+	}
+	
+	/**
+	 * Test the saving of the model for console
+	 */
+	@Test
+	public void save() {
+		// Create output stream for executing commands
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		PrintStream myout = new PrintStream(bos);
+				
+		UMLClassManager model = new UMLClassManager();
+		ConsoleView console = new ConsoleView(model, new CommandController(model));
+		
+		// Add some stuff to the model just cause
+		console.execCommand("add class myclass", myout);
+		console.execCommand("add field myclass int myInt", myout);
+		
+		// Test save for console
+		File expectedFile = new File("uml-output.json");
+		expectedFile.deleteOnExit();
+		console.execCommand("save uml-output.json", myout);
+		// Make sure the file exists
+		assertTrue("File created", expectedFile.exists());
+	}
+	
+	/**
+	 * Test the loading of the model for console
+	 */
+	@Test
+	public void load() {
+		// Create output stream for executing commands
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		PrintStream myout = new PrintStream(bos);
+				
+		UMLClassManager model = new UMLClassManager();
+		ConsoleView console = new ConsoleView(model, new CommandController(model));
+		
+		// Add some stuff to the model
+		console.execCommand("add class myclass", myout);
+		console.execCommand("add field myclass int myInt", myout);
+		
+		// Save it so we have a file to load from
+		File expectedFile = new File("uml-output.json");
+		expectedFile.deleteOnExit();
+		console.execCommand("save uml-output.json", myout);
+		// Make sure the file exists
+		assertTrue("File created", expectedFile.exists());
+		
+		// Create a second instance
+		ByteArrayOutputStream bos2 = new ByteArrayOutputStream();
+		PrintStream myout2 = new PrintStream(bos2);
+				
+		UMLClassManager model2 = new UMLClassManager();
+		ConsoleView console2 = new ConsoleView(model2, new CommandController(model2));
+
+		
+		// Load from file
+		console2.execCommand("load uml-output.json", myout2);
+		// Check if it was applied
+		assertTrue("Model has the loaded class", model2.getClass("myclass") != null);
+		assertTrue("Model has the loaded class's field", model2.getClass("myclass").hasField("myInt"));
 	}
 	
 	/**

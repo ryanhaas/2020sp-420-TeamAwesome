@@ -312,6 +312,22 @@ public class ConsoleView extends View {
 				}
 				else return 102;
 			}
+			else if (args[1].equals("relationship"))
+			{
+				//needs exactly 6 arguments
+				if (args.length == 6) {
+					String originClass = args[2];
+					String oldType = args[3];
+					String destClass = args[4];
+					String newType = args[5];
+					result = controller.editRelationships(originClass, oldType, destClass, newType);
+					if (result == 0)
+						output.println("Changed relationship from class \'" + originClass + "\' to class \'" + destClass + "\' of type \'" + oldType + "\' to type \'" + newType + "\'.");
+					else 
+						output.println("");
+				
+				}
+			}
 		}
 
 		else if(args[0].equals("save")) {
@@ -505,7 +521,8 @@ public class ConsoleView extends View {
 		validCommands.put("help", new String [] {"help: Prints out a list of valid commands with descriptions for each command.", "Typing help <command> describes a specific command."});
 		validCommands.put("add", new String[] {"add: Can add class with:", "add <class_name>.","Also adds fields and methods to specified class in the form:", "add <field/method> <class_name> <type/return_type> <field/method_name> <parameter_list>(for methods).",
 		"Add relationship in the form:", "add <relationship> <class_name1> <relationship_type> <class_name2>."});
-		validCommands.put("edit", new String[ ]{"edit: Edit classes with:", "edit class <old_class_name> <new_class_name>.","Edit fields and methods with:", "edit <field/method> <source_class> <old_name> <new_name> <parameter_list>(for method)."});
+		validCommands.put("edit", new String[ ]{"edit: Edit classes with:", "edit class <old_class_name> <new_class_name>.","Edit fields and methods with:", "edit <field/method> <source_class> <old_name> <new_name> <parameter_list>(for method).",
+		"Edit Relationships with:", "edit relationship <class_name1> <old_type> <class_name2> <new_type>."});
 		validCommands.put("remove", new String[] {"remove: Can remove class with:", "remove <class_name>.", "Also removes fields and methods from specified class in the form:", "remove <field/method> <class_name> <field/method_name> <parameter_list>(for methods).",
 		"Remove relationships in the form:", "remove <relationship> <class_name1> <relationship_type> <class_name2>."});
 		validCommands.put("exit", new String[] {"exit: Quit the program."});
